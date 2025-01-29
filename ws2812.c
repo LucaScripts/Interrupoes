@@ -1,104 +1,69 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include "pico/stdlib.h"
-#include "hardware/irq.h"
-#include "hardware/gpio.h"
+#include "hardware/pio.h"
+#include "hardware/clocks.h"
 #include "ws2812.pio.h"
 
-// GPIOs
-#define BUTTON_A 5
-#define BUTTON_B 6
+#define IS_RGBW false
+#define NUM_PIXELS 25
 #define WS2812_PIN 7
-#define LED_RED 11
-#define LED_GREEN 12
-#define LED_BLUE 13
 
-// Variáveis globais
-volatile int numero_matriz = 0;
-const uint LED_COUNT = 25; // 5x5 matriz de LEDs
+// Variáveis globais para controle do LED e cor
+uint8_t selected_led = 0; // Índice do LED a ser controlado (0 a 24)
+uint8_t selected_r = 0;   // Intensidade do vermelho (0 a 255)
+uint8_t selected_g = 0;   // Intensidade do verde (0 a 255)
+uint8_t selected_b = 80;   // Intensidade do azul (0 a 255)
 
-// Protótipos
-void gpio_irq_handler(uint gpio, uint32_t events);
-void ws2812_show();
-void debounce_and_handle(uint gpio);
-void atualiza_matriz(int numero);
-void pisca_led_vermelho();
+static inline void put_pixel(uint32_t pixel_grb) {
+    pio_sm_put_blocking(pio0, 0, pixel_grb << 8u);
+}
+
+static inline uint32_t urgb_u32(uint8_t r, uint8_t g, uint8_t b) {
+    return ((uint32_t)(r) << 8) | ((uint32_t)(g) << 16) | (uint32_t)(b);
+}
+
+uint32_t led_buffer[NUM_PIXELS] = {0}; // Buffer para armazenar as cores de todos os LEDs
+
+void update_led_buffer() {
+    // Apaga todos os LEDs
+    for (int i = 0; i < NUM_PIXELS; i++) {
+        led_buffer[i] = 0; // Desliga todos os LEDs
+    }
+
+    // Configura a cor para o LED selecionado
+    led_buffer[selected_led] = urgb_u32(selected_r, selected_g, selected_b);
+}
+
+void set_leds_from_buffer() {
+    // Envia o estado de todos os LEDs para a matriz
+    for (int i = 0; i < NUM_PIXELS; i++) {
+        put_pixel(led_buffer[i]);
+    }
+}
 
 int main() {
-    // Configuração dos GPIOs
     stdio_init_all();
+    printf("WS2812 5x5 Matrix - Single LED Control\n");
 
-    gpio_init(LED_RED);
-    gpio_set_dir(LED_RED, GPIO_OUT);
+    PIO pio = pio0;
+    int sm = 0;
+    uint offset = pio_add_program(pio, &ws2812_program);
 
-    gpio_init(LED_GREEN);
-    gpio_set_dir(LED_GREEN, GPIO_OUT);
+    ws2812_program_init(pio, sm, offset, WS2812_PIN, 800000, IS_RGBW);
 
-    gpio_init(LED_BLUE);
-    gpio_set_dir(LED_BLUE, GPIO_OUT);
+    while (1) {
+        // Atualiza o buffer com o LED e a cor selecionados
+        update_led_buffer();
 
-    gpio_init(BUTTON_A);
-    gpio_set_dir(BUTTON_A, GPIO_IN);
-    gpio_pull_up(BUTTON_A);
+        // Envia o estado do buffer para a matriz
+        set_leds_from_buffer();
 
-    gpio_init(BUTTON_B);
-    gpio_set_dir(BUTTON_B, GPIO_IN);
-    gpio_pull_up(BUTTON_B);
+        // Simula alteração de LED e cor para testes
+        sleep_ms(100); // Espera 1 segundo
+        selected_led = (selected_led + 1) % NUM_PIXELS; // Muda para o próximo LED
 
-    // Configuração da matriz WS2812
-    ws2812_init(WS2812_PIN);
-
-    // Configuração das interrupções
-    gpio_set_irq_enabled_with_callback(BUTTON_A, GPIO_IRQ_EDGE_FALL, true, &gpio_irq_handler);
-    gpio_set_irq_enabled_with_callback(BUTTON_B, GPIO_IRQ_EDGE_FALL, true, &gpio_irq_handler);
-
-    // Loop principal
-    while (true) {
-        pisca_led_vermelho();
-    }
-}
-
-void gpio_irq_handler(uint gpio, uint32_t events) {
-    debounce_and_handle(gpio);
-}
-
-void debounce_and_handle(uint gpio) {
-    static uint32_t last_time_a = 0;
-    static uint32_t last_time_b = 0;
-    uint32_t current_time = time_us_32();
-
-    if (gpio == BUTTON_A) {
-        if (current_time - last_time_a > 20000) { // 20ms debounce
-            numero_matriz = (numero_matriz + 1) % 10;
-            atualiza_matriz(numero_matriz);
-            last_time_a = current_time;
-        }
-    } else if (gpio == BUTTON_B) {
-        if (current_time - last_time_b > 20000) { // 20ms debounce
-            numero_matriz = (numero_matriz - 1 + 10) % 10;
-            atualiza_matriz(numero_matriz);
-            last_time_b = current_time;
-        }
-    }
-}
-
-void atualiza_matriz(int numero) {
-    // Apaga todos os LEDs
-    for (int i = 0; i < LED_COUNT; i++) {
-        ws2812_set_pixel(i, 0x000000);
     }
 
-    // Configura o padrão de números (substitua com seus próprios padrões)
-    // Exemplo simples: apenas iluminar os LEDs superiores para o número
-    for (int i = 0; i < numero; i++) {
-        ws2812_set_pixel(i, 0x00FF00); // Verde
-    }
-
-    ws2812_show();
+    return 0;
 }
-
-void pisca_led_vermelho() {
-    gpio_put(LED_RED, 1);
-    sleep_ms(100); // 100ms ligado
-    gpio_put(LED_RED, 0);
-    sleep_ms(100); // 100ms desligado
-} 
