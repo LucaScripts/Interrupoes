@@ -113,9 +113,9 @@ void update_ws2812_display(PIO pio, uint sm) {
 void button_a_irq_handler(uint gpio, uint32_t events) {
     uint64_t now = time_us_64();
     if (now - last_press_a > DEBOUNCE_TIME_US) {
+        last_press_a = now;
         displayed_number = (displayed_number + 1) % 10; // Incrementa o número exibido
         printf("Incremented: %d\n", displayed_number); // Mensagem de depuração
-        last_press_a = now;
     }
 }
 
@@ -123,15 +123,15 @@ void button_a_irq_handler(uint gpio, uint32_t events) {
 void button_b_irq_handler(uint gpio, uint32_t events) {
     uint64_t now = time_us_64();
     if (now - last_press_b > DEBOUNCE_TIME_US) {
+        last_press_b = now;
         displayed_number = (displayed_number - 1 + 10) % 10; // Decrementa o número exibido
         printf("Decremented: %d\n", displayed_number); // Mensagem de depuração
-        last_press_b = now;
     }
 }
 
 int main() {
     stdio_init_all();
-    printf("Iniciando...");
+    printf("Iniciando...\n");
 
     // Configuração dos LEDs RGB
     gpio_init(LED_RED_PIN);
