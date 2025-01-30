@@ -29,10 +29,9 @@ Para rodar este projeto, são necessários:
 ## Estrutura do Projeto
 ```
 Interrupcoes/
-│── src/
-│   ├── main.c   # Código principal
-│   ├── irq.c    # Implementação das interrupções
-│── include/
+│── ws2812.c  # Código principal
+│── wokwi.toml # Configurador do Simulador do Wokwi
+│── diagram.json 
 │── README.md
 │── CMakeLists.txt   # Configuração do build com Pico SDK
 ```
