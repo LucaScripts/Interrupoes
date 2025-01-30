@@ -68,7 +68,7 @@ Interrupcoes/
 ## Entrega
 - **Código-Fonte**: Disponível neste repositório.
 - **Vídeo de Demonstração**: Explicação do funcionamento e demonstração prática na placa BitDogLab.
-  - Link para o vídeo: [https://drive.google.com/file/d/1dmxRh9gSdziSYkaz_eXOMSuKhkNUOPur/view?usp=sharing]
+  - Link para o vídeo: [(https://drive.google.com/file/d/1dmxRh9gSdziSYkaz_eXOMSuKhkNUOPur/view?usp=sharing)]
 
 ## Contribuição
 Se desejar contribuir com melhorias ou sugestões, sinta-se à vontade para abrir um **pull request** ou relatar um **issue**.
