@@ -108,30 +108,32 @@ const uint32_t number_patterns[10][25] = {
 // Função para exibir número na matriz de LEDs WS2812
 void update_ws2812_display(PIO pio, uint sm) {
     for (int i = 0; i < NUM_PIXELS; i++) {
-        int index = (4 - (i / 5)) * 5 + (i % 5); // Corrige a orientação dos números
-        put_pixel(pio, sm, WS2812_PIN, hex_to_rgb(number_patterns[displayed_number][index]));
+        int index = (4 - (i / 5)) * 5 + (i % 5); // Verifique se a indexação está correta
+        uint32_t color = hex_to_rgb(number_patterns[displayed_number][index]);
+        put_pixel(pio, sm, WS2812_PIN, color);
     }
 }
 
-// Rotina de interrupção para botão A
-void button_a_irq_handler(uint gpio, uint32_t events) {
+
+void gpio_irq_handler(uint gpio, uint32_t events) {
     uint64_t now = time_us_64();
-    if (now - last_press_a > DEBOUNCE_TIME_US) {
+
+    if (gpio == BUTTON_A_PIN && now - last_press_a > DEBOUNCE_TIME_US) {
         last_press_a = now;
-        displayed_number = (displayed_number + 1) % 10; // Incrementa o número exibido
-        printf("Incremented: %d\n", displayed_number); // Mensagem de depuração
+        displayed_number = (displayed_number + 1) % 10;
+        printf("Incremented: %d\n", displayed_number);
+    } 
+    
+    if (gpio == BUTTON_B_PIN && now - last_press_b > DEBOUNCE_TIME_US) {
+        last_press_b = now;
+        displayed_number = (displayed_number - 1 + 10) % 10;
+        printf("Decremented: %d\n", displayed_number);
     }
+
+    update_ws2812_display(pio0, 0); // Atualiza a matriz imediatamente
 }
 
-// Rotina de interrupção para botão B
-void button_b_irq_handler(uint gpio, uint32_t events) {
-    uint64_t now = time_us_64();
-    if (now - last_press_b > DEBOUNCE_TIME_US) {
-        last_press_b = now;
-        displayed_number = (displayed_number - 1 + 10) % 10; // Decrementa o número exibido
-        printf("Decremented: %d\n", displayed_number); // Mensagem de depuração
-    }
-}
+
 
 int main() {
     stdio_init_all();
@@ -145,16 +147,18 @@ int main() {
     gpio_init(LED_BLUE_PIN);
     gpio_set_dir(LED_BLUE_PIN, GPIO_OUT);
 
-    // Configuração dos botões
+   // Configuração dos botões
     gpio_init(BUTTON_A_PIN);
     gpio_set_dir(BUTTON_A_PIN, GPIO_IN);
     gpio_pull_up(BUTTON_A_PIN); // Adiciona pull-up
-    gpio_set_irq_enabled_with_callback(BUTTON_A_PIN, GPIO_IRQ_EDGE_FALL, true, &button_a_irq_handler);
+    gpio_set_irq_enabled_with_callback(BUTTON_A_PIN, GPIO_IRQ_EDGE_FALL, true,&gpio_irq_handler);
 
     gpio_init(BUTTON_B_PIN);
     gpio_set_dir(BUTTON_B_PIN, GPIO_IN);
     gpio_pull_up(BUTTON_B_PIN); // Adiciona pull-up
-    gpio_set_irq_enabled_with_callback(BUTTON_B_PIN, GPIO_IRQ_EDGE_FALL, true, &button_b_irq_handler);
+    gpio_set_irq_enabled_with_callback(BUTTON_B_PIN, GPIO_IRQ_EDGE_FALL, true, &gpio_irq_handler);
+
+
 
     // Configuração da matriz WS2812
     PIO pio = pio0;
