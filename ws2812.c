@@ -7,6 +7,10 @@
 
 // Function declarations
 uint32_t urgb_u32(uint8_t r, uint8_t g, uint8_t b) {
+    // Reduz a intensidade dos LEDs dividindo os valores RGB por 4
+    r = r / 4;
+    g = g / 4;
+    b = b / 4;
     return ((uint32_t)(g) << 16) | ((uint32_t)(r) << 8) | (uint32_t)(b);
 }
 
